@@ -18,7 +18,6 @@ function App() {
   const [paperDetail, setPaperDetail] = useState<PaperDetailResponse | null>(null);
 
   const {
-    papers,
     categories,
     selectedCategory,
     isLoading: isFetching,
@@ -27,7 +26,7 @@ function App() {
     setSelectedCategory,
   } = useArxivSearch();
 
-  const { loadPaper, processPaper, isProcessing } = usePaperContext();
+  const { processPaper } = usePaperContext();
   const {
     messages,
     isStreaming,
