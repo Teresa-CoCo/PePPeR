@@ -3,7 +3,7 @@
 import { describe, expect, test, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { CategorySelector } from './CategorySelector';
-import type { Category } from '../types';
+import type { Category } from '../../types';
 
 describe('CategorySelector', () => {
   const mockCategories: Category[] = [

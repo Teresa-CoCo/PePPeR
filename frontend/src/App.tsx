@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from './components/Layout/Header';
 import { SplitPane } from './components/Layout/SplitPane';
 import { CategorySelector, FetchButton, SchedulerConfig } from './components/Dashboard';
@@ -8,7 +8,7 @@ import { useArxivSearch } from './hooks/useArxivSearch';
 import { useChatStream } from './hooks/useChatStream';
 import { usePaperContext } from './hooks/usePaperContext';
 import { papersApi } from './services/api';
-import type { PaperDetailResponse } from './types';
+import type { PaperDetailResponse, PaperResponse } from './types';
 
 type View = 'dashboard' | 'reader';
 
@@ -36,7 +36,10 @@ function App() {
 
   // Load papers on mount
   useEffect(() => {
-    papersApi.list({ limit: 50 }).then(setPaperDetail);
+    papersApi.list({ limit: 50 }).then((papers) => {
+      // Cast papers to PaperDetailResponse[] for display
+      setPaperDetail(papers as unknown as PaperDetailResponse);
+    });
   }, []);
 
   const handleFetch = async () => {
@@ -67,8 +70,8 @@ function App() {
     setPaperDetail(null);
 
     // Refresh paper list
-    papersApi.list({ limit: 50 }).then((papers) => {
-      setPaperDetail(papers as any);
+    papersApi.list({ limit: 50 }).then((papers: PaperResponse[]) => {
+      setPaperDetail(papers as unknown as PaperDetailResponse);
     });
   };
 

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { papersApi, FetchRequest } from '../services/api';
-import type { PaperResponse, Category } from '../types';
+import { papersApi } from '../services/api';
+import type { PaperResponse, Category, FetchRequest } from '../types';
 
 interface UseArxivSearchReturn {
   papers: PaperResponse[];

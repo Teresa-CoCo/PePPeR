@@ -1,10 +1,5 @@
-import React from 'react';
+import { useEffect, useRef } from 'react';
 import type { ChatMessage } from '../../types';
-
-interface Message {
-  role: string;
-  content: string;
-}
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -12,7 +7,7 @@ interface MessageListProps {
 }
 
 export function MessageList({ messages, isStreaming }: MessageListProps) {
-  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

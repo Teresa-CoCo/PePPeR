@@ -7,7 +7,7 @@ import type {
   ProcessResponse,
   ChatRequest,
   Category,
-} from './types';
+} from '../types';
 
 const API_BASE = '/api';
 

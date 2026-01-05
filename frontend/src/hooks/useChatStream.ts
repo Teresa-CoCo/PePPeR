@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { chatApi, papersApi } from '../services/api';
+import { chatApi } from '../services/api';
 import type { ChatMessage } from '../types';
 
 interface UseChatStreamReturn {
