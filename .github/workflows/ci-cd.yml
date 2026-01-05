@@ -1,0 +1,228 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '20'
+
+jobs:
+  # Lint and type check both projects
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 ruff
+
+      - name: Lint backend
+        working-directory: ./backend
+        run: |
+          flake8 app/ --max-line-length=100 --extend-ignore=E203
+          ruff check app/
+
+      - name: Lint frontend
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npm run lint
+
+  # Backend tests
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run backend tests
+        working-directory: ./backend
+        run: |
+          pip install pytest-cov
+          pytest tests/ --cov=app --cov-report=xml --cov-report=term-missing
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./backend/coverage.xml
+          flags: backend
+          fail_ci_if_error: false
+
+  # Frontend tests
+  frontend-test:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: ./frontend
+        run: npm test -- --coverage
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./frontend/coverage/lcov.info
+          flags: frontend
+          fail_ci_if_error: false
+
+  # Build and verify Docker images
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: false
+          load: true
+          tags: pepper-backend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: false
+          load: true
+          tags: pepper-frontend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify Docker images
+        run: |
+          docker images pepper-backend:test pepper-frontend:test
+
+  # Deploy to staging (on main branch push)
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: staging
+      url: https://staging.pepper.example.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to server
+        run: |
+          echo "Deploy to staging server"
+          # Add your deployment commands here
+          # Example:
+          # scp -r ./backend ./frontend docker-compose.yml user@staging.example.com:/app/
+          # ssh user@staging.example.com "cd /app && docker-compose up -d"
+
+  # Full integration test
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.ref == 'refs/heads/main'
+
+    services:
+      app:
+        image: pepper-backend:test
+        ports:
+          - 8000:8000
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          SCHEDULER_ENABLED: 'false'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Wait for service to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:8000/health > /dev/null 2>&1; then
+              echo "Service is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Service failed to start"
+          exit 1
+
+      - name: Run API tests
+        run: |
+          pip install requests
+          python -c "
+          import requests
+          import time
+
+          # Test health endpoint
+          resp = requests.get('http://localhost:8000/health')
+          assert resp.status_code == 200, f'Health check failed: {resp.status_code}'
+          print('Health check passed')
+
+          # Test papers endpoint
+          resp = requests.get('http://localhost:8000/api/papers')
+          assert resp.status_code == 200, f'Papers endpoint failed: {resp.status_code}'
+          print('Papers endpoint passed')
+          "

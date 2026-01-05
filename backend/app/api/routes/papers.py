@@ -20,7 +20,6 @@ from app.models.schemas import (
     FetchResponse,
     ProcessRequest,
     ProcessResponse,
-    ListPapersRequest,
 )
 
 router = APIRouter()
