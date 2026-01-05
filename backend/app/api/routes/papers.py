@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
 
 from app.services.arxiv_service import arxiv_client
@@ -12,7 +12,7 @@ from app.services.pdf_service import pdf_service
 from app.services.ocr_service import ocr_service
 from app.services.llm_service import llm_service
 from app.services.data_store import data_store
-from app.models.paper import Paper, PaperMetadata, AIAnalysis
+from app.models.paper import Paper
 from app.models.schemas import (
     PaperResponse,
     PaperDetailResponse,
@@ -197,7 +197,7 @@ async def process_paper(arxiv_id: str, request: ProcessRequest) -> ProcessRespon
                 data_store.set_extracted_text(arxiv_id, text)
                 text_extracted = True
                 ocr_success = True
-        except Exception as e:
+        except Exception:
             # Fallback to PyMuPDF
             try:
                 text = ocr_service._extract_with_pymupdf(paper.pdf_path)
@@ -210,11 +210,6 @@ async def process_paper(arxiv_id: str, request: ProcessRequest) -> ProcessRespon
 
     # AI analysis
     try:
-        # Use abstract first, then full text if available
-        context = paper.metadata.abstract
-        if paper.extracted_text:
-            context = paper.extracted_text
-
         analysis = llm_service.analyze_paper(
             title=paper.metadata.title,
             abstract=paper.metadata.abstract,
@@ -224,7 +219,7 @@ async def process_paper(arxiv_id: str, request: ProcessRequest) -> ProcessRespon
         if analysis:
             data_store.set_ai_analysis(arxiv_id, analysis)
             ai_analysis_generated = True
-    except Exception as e:
+    except Exception:
         pass
 
     # Mark as processed

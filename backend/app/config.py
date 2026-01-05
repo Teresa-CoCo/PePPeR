@@ -1,8 +1,6 @@
 """Configuration and settings management."""
 
-import os
 from pathlib import Path
-from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -32,12 +30,18 @@ class Settings(BaseSettings):
     # Paths
     PAPERS_DIR: Path = Field(default=Path("./papers"), description="Directory for PDF storage")
     DATA_DIR: Path = Field(default=Path("./data"), description="Directory for data files")
-    PAPERS_JSON: Path = Field(default=Path("./data/papers.json"), description="Papers database file")
+    PAPERS_JSON: Path = Field(
+        default=Path("./data/papers.json"),
+        description="Papers database file"
+    )
 
     # Scheduler
     SCHEDULER_ENABLED: bool = Field(default=False, description="Enable/disable scheduler")
     SCHEDULER_TIME: str = Field(default="08:00", description="Daily fetch time (HH:MM)")
-    SCHEDULER_CATEGORIES: str = Field(default="cs.AI,cs.LG,cs.CL", description="Categories to fetch")
+    SCHEDULER_CATEGORIES: str = Field(
+        default="cs.AI,cs.LG,cs.CL",
+        description="Categories to fetch"
+    )
 
     # Server
     HOST: str = Field(default="0.0.0.0", description="Server host")

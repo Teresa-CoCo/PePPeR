@@ -3,11 +3,10 @@
 import json
 import logging
 from datetime import datetime
-from pathlib import Path
 from typing import Dict, List, Optional
 
 from app.config import settings
-from app.models.paper import Paper, PaperMetadata, AIAnalysis, ChatMessage
+from app.models.paper import Paper, AIAnalysis, ChatMessage
 
 logger = logging.getLogger(__name__)
 

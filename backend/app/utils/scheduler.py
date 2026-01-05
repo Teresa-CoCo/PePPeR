@@ -1,8 +1,7 @@
 """Scheduler service for automatic paper fetching."""
 
 import logging
-from datetime import datetime
-from typing import List, Optional
+from typing import List
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger

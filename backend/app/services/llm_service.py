@@ -5,10 +5,9 @@ import logging
 from typing import AsyncGenerator, Dict, List, Optional
 
 from openai import AsyncOpenAI
-from sse_starlette.sse import EventSourceResponse
 
 from app.config import settings
-from app.models.paper import AIAnalysis, ChatMessage
+from app.models.paper import AIAnalysis
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +41,11 @@ class LLMService:
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a research assistant. Explain this academic abstract clearly and concisely for a researcher. Focus on the key contribution and methodology. Keep it brief (2-3 sentences).",
+                    "content": (
+                        "You are a research assistant. Explain this academic abstract "
+                        "clearly and concisely for a researcher. Focus on the key "
+                        "contribution and methodology. Keep it brief (2-3 sentences)."
+                    ),
                 },
                 {"role": "user", "content": abstract},
             ],
@@ -79,15 +82,14 @@ class LLMService:
             messages=[
                 {
                     "role": "system",
-                    "content": """You are a research assistant analyzing an academic paper. Provide a structured analysis with:
-1. A concise summary (2-3 sentences)
-2. Key findings (bullet points)
-3. Methodology overview
-4. Strengths
-5. Limitations
-6. Relevance score (0-100) for ML/AI research
-
-Return as JSON with keys: summary, key_findings (list), methodology, strengths (list), limitations (list), relevance_score.""",
+                    "content": (
+                        "You are a research assistant analyzing an academic paper. "
+                        "Provide a structured analysis with: 1. A concise summary (2-3 sentences) "
+                        "2. Key findings (bullet points) 3. Methodology overview 4. Strengths "
+                        "5. Limitations 6. Relevance score (0-100) for ML/AI research. "
+                        "Return as JSON with keys: summary, key_findings (list), methodology, "
+                        "strengths (list), limitations (list), relevance_score."
+                    ),
                 },
                 {"role": "user", "content": context},
             ],
@@ -138,14 +140,13 @@ Return as JSON with keys: summary, key_findings (list), methodology, strengths (
         selected_model = model or self.default_model
 
         # Build context with system prompt
-        system_prompt = f"""You are a research assistant helping a user understand an academic paper.
-You must answer based ONLY on the provided paper content.
-If the answer cannot be found in the paper, say so clearly.
-
-Paper content:
-{paper_text[:50000]}  # Truncate to fit context
-
-Current conversation:"""
+        truncated_text = paper_text[:50000]
+        system_prompt = (
+            "You are a research assistant helping a user understand an academic paper. "
+            "You must answer based ONLY on the provided paper content. "
+            "If the answer cannot be found in the paper, say so clearly. "
+            f"Paper content:\n{truncated_text}\n\nCurrent conversation:"
+        )
 
         # Construct full message list
         full_messages = [{"role": "system", "content": system_prompt}] + messages

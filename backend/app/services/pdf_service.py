@@ -1,7 +1,6 @@
 """PDF download and management service."""
 
 import logging
-import os
 from pathlib import Path
 from typing import Optional
 from datetime import datetime
@@ -58,7 +57,8 @@ class PDFService:
             logger.info(f"Downloading PDF: {arxiv_id} from {pdf_url}")
 
             async with aiohttp.ClientSession() as session:
-                async with session.get(pdf_url, timeout=aiohttp.ClientTimeout(total=60)) as response:
+                timeout = aiohttp.ClientTimeout(total=60)
+                async with session.get(pdf_url, timeout=timeout) as response:
                     response.raise_for_status()
                     content = await response.read()
 
@@ -76,7 +76,9 @@ class PDFService:
                 pdf_path.unlink()
             return None
 
-    def get_pdf_path(self, arxiv_id: str, category: str, date: Optional[datetime] = None) -> Optional[str]:
+    def get_pdf_path(
+        self, arxiv_id: str, category: str, date: Optional[datetime] = None
+    ) -> Optional[str]:
         """Get the path to an existing PDF file."""
         pdf_path = self._get_pdf_path(arxiv_id, category, date)
         if pdf_path.exists():

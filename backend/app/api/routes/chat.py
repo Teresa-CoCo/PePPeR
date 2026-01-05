@@ -1,13 +1,12 @@
 """Chat API routes for paper Q&A."""
 
-import uuid
 from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 
 from app.models.paper import ChatMessage
-from app.models.schemas import ChatRequest, ChatResponse
+from app.models.schemas import ChatRequest
 from app.services.data_store import data_store
 from app.services.llm_service import llm_service
 from sse_starlette.sse import EventSourceResponse
@@ -23,7 +22,7 @@ async def chat_event_generator(arxiv_id: str, user_message: str, model: Optional
         return
 
     if not paper.extracted_text:
-        yield {"event": "error", "data": "Paper text not extracted. Please process the paper first."}
+        yield {"event": "error", "data": "Paper text not extracted."}
         return
 
     # Build messages list from chat history

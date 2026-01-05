@@ -6,7 +6,6 @@ import time
 from datetime import date, datetime
 from typing import List, Optional
 
-import arxiv
 from arxiv import Search, SortOrder, SortCriterion
 
 from app.config import settings
@@ -47,7 +46,10 @@ class ArxivClient:
             arxiv_id = arxiv_id.split("/v")[0]
 
         # Parse authors
-        authors = [Author(name=a.name, arxiv_id=getattr(a, "arxiv_id", None)) for a in entry.authors]
+        authors = [
+            Author(name=a.name, arxiv_id=getattr(a, "arxiv_id", None))
+            for a in entry.authors
+        ]
 
         return PaperMetadata(
             arxiv_id=arxiv_id,
