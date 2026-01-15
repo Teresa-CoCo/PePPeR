@@ -6,6 +6,7 @@ import time
 from datetime import date, datetime
 from typing import List, Optional
 
+import arxiv
 from arxiv import Search, SortOrder, SortCriterion
 
 from app.config import settings
@@ -22,12 +23,18 @@ class ArxivClient:
         self.delay = settings.ARXIV_DELAY_SECONDS
         self.max_results = settings.ARXIV_MAX_RESULTS
         self._last_request_time: float = 0
+        # Create arxiv Client with rate limiting built in
+        self._client = arxiv.Client(
+            page_size=self.max_results,
+            delay_seconds=self.delay,
+            num_retries=3
+        )
 
     def _rate_limit(self) -> None:
         """Enforce rate limiting between requests."""
         elapsed = time.time() - self._last_request_time
         if elapsed < self.delay:
-            asyncio.sleep(self.delay - elapsed)
+            time.sleep(self.delay - elapsed)
         self._last_request_time = time.time()
 
     def _to_datetime(self, arxiv_date) -> datetime:
@@ -40,10 +47,14 @@ class ArxivClient:
 
     def _parse_entry(self, entry) -> PaperMetadata:
         """Parse an arXiv entry into PaperMetadata."""
-        # Extract arxiv_id without version
-        arxiv_id = entry.id.split("/abs/")[-1]
-        if "/v" in arxiv_id:
-            arxiv_id = arxiv_id.split("/v")[0]
+        # Extract arxiv_id without version using get_short_id()
+        # get_short_id() returns format like "2401.00001v1"
+        short_id = entry.get_short_id()
+        # Remove version suffix (e.g., "v1", "v2")
+        if "v" in short_id:
+            arxiv_id = short_id.rsplit("v", 1)[0]
+        else:
+            arxiv_id = short_id
 
         # Parse authors
         authors = [
@@ -106,7 +117,7 @@ class ArxivClient:
             )
 
             papers = []
-            for entry in search.entries():
+            for entry in self._client.results(search):
                 papers.append(self._parse_entry(entry))
 
             logger.info(f"Found {len(papers)} papers in {category} for date {target_date}")

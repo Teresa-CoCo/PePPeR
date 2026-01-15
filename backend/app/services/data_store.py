@@ -17,8 +17,8 @@ class DataStore:
     def __init__(self):
         """Initialize data store."""
         self.papers_file = settings.PAPERS_JSON
-        self._ensure_file_exists()
         self._papers_cache: Dict[str, Paper] = {}
+        self._ensure_file_exists()
 
     def _ensure_file_exists(self) -> None:
         """Create data file if it doesn't exist."""
